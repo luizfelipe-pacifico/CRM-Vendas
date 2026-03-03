@@ -1,0 +1,233 @@
+import { ReactNode, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  Kanban,
+  CalendarCheck,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Bell,
+  Search,
+  Moon,
+  Sun,
+  Monitor,
+  ChevronsUpDown,
+  UserRound,
+  LogOut,
+  SlidersHorizontal,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { DEFAULT_CRM_SETTINGS, readCrmSettings } from "@/lib/crm-settings";
+import { useTheme } from "next-themes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/sonner";
+
+const navItems = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Users, label: "Clientes", path: "/clientes" },
+  { icon: Kanban, label: "Funil de vendas", path: "/pipeline" },
+  { icon: CalendarCheck, label: "Atividades", path: "/atividades" },
+  { icon: Settings, label: "Configuracoes", path: "/configuracoes" },
+];
+
+interface LayoutProps {
+  children: ReactNode;
+}
+
+type ThemeMode = "light" | "dark" | "system";
+
+const Layout = ({ children }: LayoutProps) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [crmSettings, setCrmSettings] = useState(DEFAULT_CRM_SETTINGS);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const syncSettings = () => setCrmSettings(readCrmSettings());
+
+    syncSettings();
+    window.addEventListener("storage", syncSettings);
+    window.addEventListener("crm-settings-updated", syncSettings as EventListener);
+
+    return () => {
+      window.removeEventListener("storage", syncSettings);
+      window.removeEventListener("crm-settings-updated", syncSettings as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.title = crmSettings.companyName || "CRM Vendas";
+  }, [crmSettings.companyName]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const selectedTheme: ThemeMode = mounted && theme ? (theme as ThemeMode) : "system";
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <aside
+        className={cn(
+          "relative flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300",
+          collapsed ? "w-[74px]" : "w-[280px]"
+        )}
+      >
+        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
+          <div className="h-9 w-9 overflow-hidden rounded-lg border border-sidebar-border/50 bg-sidebar-accent flex-shrink-0">
+            <img src="/icon-CRM-vendas.png" alt="CRM Vendas" className="h-full w-full object-cover" />
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 animate-soft-in">
+              <p className="truncate font-display text-sm font-bold tracking-wide text-sidebar-primary-foreground">
+                {crmSettings.companyName}
+              </p>
+              <p className="truncate text-[11px] text-sidebar-foreground">Pipeline comercial</p>
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map((item, index) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                style={{ animationDelay: `${index * 35}ms` }}
+                className={cn(
+                  "motion-surface animate-soft-in flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-primary-glow"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-card transition-colors hover:text-foreground"
+        >
+          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
+
+        <div className="border-t border-sidebar-border p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "motion-surface flex w-full items-center gap-3 rounded-lg border border-transparent px-1.5 py-1.5 text-left hover:border-sidebar-border hover:bg-sidebar-accent/80",
+                  collapsed && "justify-center"
+                )}
+              >
+                <div className="h-9 w-9 overflow-hidden rounded-full border border-sidebar-border bg-sidebar-accent flex-shrink-0">
+                  <img src="/luiz-felipe-pacifico.png" alt={crmSettings.adminName} className="h-full w-full object-cover" />
+                </div>
+                {!collapsed && (
+                  <>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-sidebar-accent-foreground">{crmSettings.adminName}</p>
+                      <p className="truncate text-xs text-sidebar-foreground">Administrador</p>
+                    </div>
+                    <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side={collapsed ? "right" : "top"}
+              align={collapsed ? "center" : "start"}
+              className="w-56"
+            >
+              <DropdownMenuLabel>Perfil</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => toast.info("Perfil completo em breve")}>
+                  <UserRound className="mr-2 h-4 w-4" />
+                  Minha conta
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Preferencias
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCollapsed((value) => !value)}>
+                  {collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => toast.success("Sessao encerrada (demo)")}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
+          <div className="motion-surface flex w-80 items-center gap-3 rounded-lg bg-muted px-3 py-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar empresas, contatos e negocios..."
+              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="motion-surface rounded-lg p-2 transition-colors hover:bg-muted"
+                  aria-label="Selecionar tema"
+                  title="Selecionar tema"
+                >
+                  {selectedTheme === "light" && <Sun className="h-5 w-5 text-muted-foreground" />}
+                  {selectedTheme === "dark" && <Moon className="h-5 w-5 text-muted-foreground" />}
+                  {selectedTheme === "system" && <Monitor className="h-5 w-5 text-muted-foreground" />}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Tema</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={selectedTheme} onValueChange={(value) => setTheme(value)}>
+                  <DropdownMenuRadioItem value="light">Claro</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">Escuro</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="system">Sistema (automatico)</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <button className="motion-surface relative rounded-lg p-2 transition-colors hover:bg-muted" aria-label="Notificacoes">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto p-6 animate-soft-in">{children}</main>
+      </div>
+    </div>
+  );
+};
+
+export default Layout;

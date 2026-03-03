@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 22% 96%;
+    --foreground: 209 51% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 209 51% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 209 51% 12%;
+
+    --primary: 215 51% 25%;
+    --primary-foreground: 210 22% 96%;
+
+    --secondary: 216 15% 92%;
+    --secondary-foreground: 209 51% 12%;
+
+    --muted: 216 15% 87%;
+    --muted-foreground: 218 11% 32%;
+
+    --accent: 218 11% 19%;
+    --accent-foreground: 210 22% 96%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 62% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 35 86% 47%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 215 51% 25%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 216 15% 83%;
+    --input: 216 15% 83%;
+    --ring: 215 51% 25%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 209 51% 12%;
+    --sidebar-foreground: 216 15% 87%;
+    --sidebar-primary: 215 51% 25%;
+    --sidebar-primary-foreground: 210 22% 96%;
+    --sidebar-accent: 218 11% 19%;
+    --sidebar-accent-foreground: 210 22% 96%;
+    --sidebar-border: 215 35% 20%;
+    --sidebar-ring: 215 51% 25%;
+    --sidebar-muted: 218 11% 24%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(215 51% 25%), hsl(209 51% 12%));
+    --gradient-accent: linear-gradient(135deg, hsl(218 11% 19%), hsl(215 51% 25%));
+    --gradient-success: linear-gradient(135deg, hsl(160 62% 35%), hsl(170 55% 30%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 22% 96%));
+    --background-glow: radial-gradient(circle at 20% -5%, hsl(216 15% 87% / 0.55), transparent 35%);
+
+    --shadow-sm: 0 1px 3px hsl(209 51% 12% / 0.06);
+    --shadow-md: 0 8px 20px hsl(209 51% 12% / 0.08);
+    --shadow-lg: 0 14px 28px hsl(209 51% 12% / 0.12);
+    --shadow-primary: 0 10px 26px hsl(215 51% 25% / 0.28);
+  }
+
+  .dark {
+    --background: 209 51% 10%;
+    --foreground: 210 22% 96%;
+
+    --card: 215 35% 14%;
+    --card-foreground: 210 22% 96%;
+
+    --popover: 215 35% 14%;
+    --popover-foreground: 210 22% 96%;
+
+    --primary: 216 15% 87%;
+    --primary-foreground: 209 51% 12%;
+
+    --secondary: 218 11% 19%;
+    --secondary-foreground: 210 22% 96%;
+
+    --muted: 215 35% 16%;
+    --muted-foreground: 216 15% 75%;
+
+    --accent: 215 51% 25%;
+    --accent-foreground: 210 22% 96%;
+
+    --destructive: 0 65% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 55% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 35 80% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 215 51% 40%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 215 26% 24%;
+    --input: 215 26% 24%;
+    --ring: 216 15% 87%;
+
+    --sidebar-background: 209 51% 8%;
+    --sidebar-foreground: 216 15% 87%;
+    --sidebar-primary: 215 51% 32%;
+    --sidebar-primary-foreground: 210 22% 96%;
+    --sidebar-accent: 218 11% 19%;
+    --sidebar-accent-foreground: 210 22% 96%;
+    --sidebar-border: 215 26% 18%;
+    --sidebar-ring: 215 51% 35%;
+    --sidebar-muted: 218 11% 14%;
+    --background-glow: radial-gradient(circle at 20% -5%, hsl(215 51% 25% / 0.35), transparent 42%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: "Manrope", sans-serif;
+    background-image: var(--background-glow);
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Sora", sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-primary-glow {
+    box-shadow: var(--shadow-primary);
+  }
+
+  .motion-surface {
+    transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, border-color 0.22s ease;
+  }
+
+  .motion-surface:hover {
+    transform: translateY(-1px);
+  }
+}
