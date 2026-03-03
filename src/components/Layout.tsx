@@ -26,6 +26,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CRM_SETTINGS, type CrmSettings } from "@/lib/crm-settings";
 import { fetchCrmSettings } from "@/lib/crm-db";
+import { hasSupabaseConfig } from "@/lib/supabase";
 import { toast } from "@/components/ui/sonner";
 import {
   DropdownMenu,
@@ -68,6 +69,15 @@ const Layout = ({ children }: LayoutProps) => {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!hasSupabaseConfig) {
+      toast.error("Configuração do banco ausente", {
+        description: "Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel para carregar os dados.",
+        duration: 7000,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {

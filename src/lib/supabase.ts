@@ -1,17 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
+const supabaseAnonKey = String(
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ""
+).trim();
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase environment variables are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local."
+export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
+
+const fallbackSupabaseUrl = "https://invalid-project.supabase.co";
+const fallbackSupabaseAnonKey = "invalid-anon-key";
+
+if (!hasSupabaseConfig) {
+  console.error(
+    "[CRM Vendas] Variaveis do Supabase ausentes. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY)."
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+export const supabase = createClient(
+  hasSupabaseConfig ? supabaseUrl : fallbackSupabaseUrl,
+  hasSupabaseConfig ? supabaseAnonKey : fallbackSupabaseAnonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }
+);
