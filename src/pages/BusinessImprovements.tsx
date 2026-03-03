@@ -84,6 +84,12 @@ const roleTone: Record<AccessLevel, string> = {
   funcionario: "bg-muted text-muted-foreground",
 };
 
+const roleLabel: Record<AccessLevel, string> = {
+  administrador: "Administrador",
+  gestor: "Gestor",
+  funcionario: "Funcionário",
+};
+
 const BusinessImprovements = () => {
   const [profile, setProfile] = useState<OrganizationProfile>(emptyProfile);
   const [memberForm, setMemberForm] = useState<MemberForm>(emptyMemberForm);
@@ -424,7 +430,7 @@ const BusinessImprovements = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold", roleTone[member.role])}>
-                  {member.role}
+                  {roleLabel[member.role]}
                 </span>
                 <span className="text-xs text-muted-foreground">{parseNumber(member.monthlyCost) ? formatMoney(parseNumber(member.monthlyCost)) : "-"}</span>
                 <button

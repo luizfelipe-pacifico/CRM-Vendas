@@ -37,6 +37,18 @@ const toneByPriority: Record<FeedbackPriority, string> = {
   alta: "bg-destructive/15 text-destructive",
 };
 
+const typeLabel: Record<FeedbackType, string> = {
+  sugestao: "Sugestão",
+  melhoria: "Melhoria",
+  erro: "Erro",
+};
+
+const priorityLabel: Record<FeedbackPriority, string> = {
+  baixa: "Baixa",
+  media: "Média",
+  alta: "Alta",
+};
+
 const Feedback = () => {
   const [entries, setEntries] = useState<FeedbackEntry[]>([]);
   const [form, setForm] = useState<FeedbackForm>(emptyForm);
@@ -179,9 +191,9 @@ const Feedback = () => {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-card-foreground">{entry.type.toUpperCase()}</span>
+                    <span className="text-sm font-semibold text-card-foreground">{typeLabel[entry.type]}</span>
                     <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold", toneByPriority[entry.priority])}>
-                      {entry.priority}
+                      {priorityLabel[entry.priority]}
                     </span>
                     {entry.area && <span className="text-xs text-muted-foreground">Área: {entry.area}</span>}
                   </div>

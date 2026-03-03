@@ -24,6 +24,13 @@ const temperatureLabels: Record<string, string> = {
 
 const pieColors = ["hsl(215 51% 25%)", "hsl(35 86% 47%)", "hsl(0 72% 48%)", "hsl(160 62% 35%)"];
 
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
+
 const Analytics = () => {
   const [deals, setDeals] = useState<DealRecord[]>([]);
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
