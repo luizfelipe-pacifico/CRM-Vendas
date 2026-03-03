@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Filter,
+  Loader2,
   Plus,
   Target,
 } from "lucide-react";
@@ -20,8 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-const PIPELINE_STORAGE_KEY = "crm-vendas-pipeline-deals";
+import { createDeal, fetchDeals, updateDealStage, type DealRecord, type DealStage } from "@/lib/crm-db";
 
 const stages = [
   { id: "sem_contato", label: "Sem contato", probability: 10 },
@@ -35,22 +35,6 @@ const stages = [
 
 type StageId = (typeof stages)[number]["id"];
 type FollowUpView = "todas" | "atrasadas" | "hoje" | "semana" | "sem_followup";
-
-interface Deal {
-  id: number;
-  title: string;
-  company: string;
-  contact: string;
-  owner: string;
-  value: number;
-  stage: StageId;
-  nextAction: string;
-  followUpDate: string;
-  expectedClose: string;
-  labels: string[];
-  checklistDone: number;
-  checklistTotal: number;
-}
 
 interface DealForm {
   title: string;
@@ -139,66 +123,55 @@ const getDiffDays = (value: string) => {
   return Math.round(diff / (1000 * 60 * 60 * 24));
 };
 
-const readDealsFromStorage = (): Deal[] => {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(PIPELINE_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.map((deal: Partial<Deal>, index: number) => ({
-      id: typeof deal.id === "number" ? deal.id : Date.now() + index,
-      title: deal.title?.toString() || "Negocio sem titulo",
-      company: deal.company?.toString() || "Empresa",
-      contact: deal.contact?.toString() || "",
-      owner: deal.owner?.toString() || "Sem responsavel",
-      value: typeof deal.value === "number" ? deal.value : 0,
-      stage: stages.some((stage) => stage.id === deal.stage) ? (deal.stage as StageId) : "sem_contato",
-      nextAction: deal.nextAction?.toString() || "",
-      followUpDate: deal.followUpDate?.toString() || "",
-      expectedClose: deal.expectedClose?.toString() || "",
-      labels: Array.isArray(deal.labels) ? deal.labels.filter(Boolean).map(String) : [],
-      checklistDone: typeof deal.checklistDone === "number" ? deal.checklistDone : 0,
-      checklistTotal: typeof deal.checklistTotal === "number" ? deal.checklistTotal : 0,
-    }));
-  } catch {
-    return [];
-  }
-};
-
 const getFollowUpTag = (followUpDate: string) => {
   const diff = getDiffDays(followUpDate);
 
-  if (diff === null) {
-    return { label: "Sem follow-up", tone: "bg-muted text-muted-foreground" };
-  }
-  if (diff < 0) {
-    return { label: `Atrasado (${Math.abs(diff)}d)`, tone: "bg-destructive/15 text-destructive" };
-  }
-  if (diff === 0) {
-    return { label: "Hoje", tone: "bg-warning/15 text-warning" };
-  }
-  if (diff <= 7) {
-    return { label: `${diff}d`, tone: "bg-info/15 text-info" };
-  }
+  if (diff === null) return { label: "Sem follow-up", tone: "bg-muted text-muted-foreground" };
+  if (diff < 0) return { label: `Atrasado (${Math.abs(diff)}d)`, tone: "bg-destructive/15 text-destructive" };
+  if (diff === 0) return { label: "Hoje", tone: "bg-warning/15 text-warning" };
+  if (diff <= 7) return { label: `${diff}d`, tone: "bg-info/15 text-info" };
   return { label: `Em ${diff}d`, tone: "bg-success/15 text-success" };
 };
 
 const Pipeline = () => {
-  const [deals, setDeals] = useState<Deal[]>(() => readDealsFromStorage());
+  const [deals, setDeals] = useState<DealRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<DealForm>(emptyForm);
   const [followView, setFollowView] = useState<FollowUpView>("todas");
   const [ownerFilter, setOwnerFilter] = useState("todos");
   const [labelFilter, setLabelFilter] = useState("todas");
 
   useEffect(() => {
-    localStorage.setItem(PIPELINE_STORAGE_KEY, JSON.stringify(deals));
-  }, [deals]);
+    const loadDeals = async () => {
+      try {
+        const data = await fetchDeals();
+        setDeals(data);
+      } catch (error) {
+        toast.error("Nao foi possivel carregar o pipeline", {
+          description: error instanceof Error ? error.message : "Tente novamente.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const moveDeal = (dealId: number, newStage: StageId) => {
+    loadDeals();
+  }, []);
+
+  const moveDeal = async (dealId: string, newStage: StageId) => {
+    const previous = deals;
     setDeals((prev) => prev.map((deal) => (deal.id === dealId ? { ...deal, stage: newStage } : deal)));
+
+    try {
+      await updateDealStage(dealId, newStage);
+    } catch (error) {
+      setDeals(previous);
+      toast.error("Falha ao mover negocio", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    }
   };
 
   const summary = useMemo(() => {
@@ -213,12 +186,7 @@ const Pipeline = () => {
       return sum + deal.value * (probability / 100);
     }, 0);
 
-    return {
-      openCount: openDeals.length,
-      totalOpenValue,
-      totalWonValue,
-      weightedForecast,
-    };
+    return { openCount: openDeals.length, totalOpenValue, totalWonValue, weightedForecast };
   }, [deals]);
 
   const followUpSummary = useMemo(() => {
@@ -236,15 +204,13 @@ const Pipeline = () => {
     return { overdue, today, thisWeek, withoutDate };
   }, [deals]);
 
-  const ownerOptions = useMemo(() => {
-    return Array.from(new Set(deals.map((deal) => deal.owner).filter(Boolean)));
-  }, [deals]);
+  const ownerOptions = useMemo(() => Array.from(new Set(deals.map((deal) => deal.owner).filter(Boolean))), [deals]);
+  const labelOptions = useMemo(
+    () => Array.from(new Set(deals.flatMap((deal) => deal.labels))).sort((a, b) => a.localeCompare(b)),
+    [deals]
+  );
 
-  const labelOptions = useMemo(() => {
-    return Array.from(new Set(deals.flatMap((deal) => deal.labels))).sort((a, b) => a.localeCompare(b));
-  }, [deals]);
-
-  const matchesFollowUpView = (deal: Deal) => {
+  const matchesFollowUpView = (deal: DealRecord) => {
     const diff = getDiffDays(deal.followUpDate);
     switch (followView) {
       case "atrasadas":
@@ -260,13 +226,15 @@ const Pipeline = () => {
     }
   };
 
-  const filteredDeals = useMemo(() => {
-    return deals.filter((deal) => {
-      const ownerMatch = ownerFilter === "todos" || deal.owner === ownerFilter;
-      const labelMatch = labelFilter === "todas" || deal.labels.includes(labelFilter);
-      return ownerMatch && labelMatch && matchesFollowUpView(deal);
-    });
-  }, [deals, followView, ownerFilter, labelFilter]);
+  const filteredDeals = useMemo(
+    () =>
+      deals.filter((deal) => {
+        const ownerMatch = ownerFilter === "todos" || deal.owner === ownerFilter;
+        const labelMatch = labelFilter === "todas" || deal.labels.includes(labelFilter);
+        return ownerMatch && labelMatch && matchesFollowUpView(deal);
+      }),
+    [deals, followView, ownerFilter, labelFilter]
+  );
 
   const viewCounters = useMemo(
     () => ({
@@ -279,7 +247,7 @@ const Pipeline = () => {
     [deals.length, followUpSummary]
   );
 
-  const createDeal = () => {
+  const createDealRecord = async () => {
     if (!form.title.trim() || !form.company.trim()) {
       toast.error("Preencha ao menos titulo e empresa");
       return;
@@ -289,34 +257,39 @@ const Pipeline = () => {
     const checklistTotal = Math.max(Number(form.checklistTotal || "0"), 0);
     const checklistDone = Math.min(Math.max(Number(form.checklistDone || "0"), 0), checklistTotal);
 
-    const labels = form.labels
-      .split(",")
-      .map((label) => label.trim())
-      .filter(Boolean);
+    setSaving(true);
+    try {
+      const created = await createDeal({
+        title: form.title.trim(),
+        company: form.company.trim(),
+        contact: form.contact.trim(),
+        owner: form.owner.trim() || "Sem responsavel",
+        value: Number.isFinite(value) ? value : 0,
+        stage: form.stage,
+        nextAction: form.nextAction.trim(),
+        followUpDate: form.followUpDate,
+        expectedClose: form.expectedClose,
+        labels: form.labels
+          .split(",")
+          .map((label) => label.trim())
+          .filter(Boolean),
+        checklistDone,
+        checklistTotal,
+      });
 
-    const newDeal: Deal = {
-      id: Date.now(),
-      title: form.title.trim(),
-      company: form.company.trim(),
-      contact: form.contact.trim(),
-      owner: form.owner.trim() || "Sem responsavel",
-      value: Number.isFinite(value) ? value : 0,
-      stage: form.stage,
-      nextAction: form.nextAction.trim(),
-      followUpDate: form.followUpDate,
-      expectedClose: form.expectedClose,
-      labels,
-      checklistDone,
-      checklistTotal,
-    };
-
-    setDeals((prev) => [newDeal, ...prev]);
-    setForm(emptyForm);
-    setDialogOpen(false);
-
-    toast.success("Oportunidade criada", {
-      description: "Negocio adicionado ao pipeline com sucesso.",
-    });
+      setDeals((prev) => [created, ...prev]);
+      setForm(emptyForm);
+      setDialogOpen(false);
+      toast.success("Oportunidade criada", {
+        description: "Negocio salvo no banco de dados.",
+      });
+    } catch (error) {
+      toast.error("Falha ao criar negocio", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -428,9 +401,11 @@ const Pipeline = () => {
 
             <DialogFooter>
               <button
-                onClick={createDeal}
-                className="gradient-primary rounded-lg px-4 py-2 text-sm font-medium text-primary-foreground"
+                onClick={createDealRecord}
+                disabled={saving}
+                className="gradient-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Salvar oportunidade
               </button>
             </DialogFooter>
@@ -586,91 +561,99 @@ const Pipeline = () => {
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
-                    const dealId = Number(event.dataTransfer.getData("dealId"));
-                    if (!Number.isNaN(dealId)) {
+                    const dealId = event.dataTransfer.getData("dealId");
+                    if (dealId) {
                       moveDeal(dealId, stage.id);
                     }
                   }}
                 >
-                  {stageDeals.map((deal) => {
-                    const progress =
-                      deal.checklistTotal > 0 ? Math.round((deal.checklistDone / deal.checklistTotal) * 100) : 0;
-                    const followUpTag = getFollowUpTag(deal.followUpDate);
+                  {loading && (
+                    <div className="rounded-lg border border-dashed border-border bg-card/60 px-3 py-6 text-center text-xs text-muted-foreground">
+                      Carregando...
+                    </div>
+                  )}
 
-                    return (
-                      <article
-                        key={deal.id}
-                        className="motion-surface cursor-grab rounded-xl border border-border bg-card p-3 shadow-card hover:shadow-card-hover active:cursor-grabbing"
-                        draggable
-                        onDragStart={(event) => event.dataTransfer.setData("dealId", String(deal.id))}
-                      >
-                        <p className="text-sm font-semibold text-card-foreground">{deal.title}</p>
-                        <p className="text-xs text-muted-foreground">{deal.company}</p>
+                  {!loading &&
+                    stageDeals.map((deal) => {
+                      const progress =
+                        deal.checklistTotal > 0 ? Math.round((deal.checklistDone / deal.checklistTotal) * 100) : 0;
+                      const followUpTag = getFollowUpTag(deal.followUpDate);
 
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-base font-bold text-primary">{formatMoney(deal.value)}</span>
-                          <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-medium text-secondary-foreground">
-                            {deal.owner}
-                          </span>
-                        </div>
-
-                        {deal.labels.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {deal.labels.map((label) => (
-                              <Badge key={label} variant="secondary" className="text-[10px]">
-                                {label}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="mt-3 rounded-lg bg-muted/60 px-2.5 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Proxima acao</p>
-                          <p className="mt-1 text-xs text-foreground">{deal.nextAction || "Sem acao definida"}</p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">Contato: {deal.contact || "-"}</p>
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold", followUpTag.tone)}>
-                            {followUpTag.label}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            Fech.: {deal.expectedClose || "--/--/----"}
-                          </span>
-                        </div>
-
-                        {deal.checklistTotal > 0 && (
-                          <div className="mt-3">
-                            <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                              <span>Checklist</span>
-                              <span>
-                                {deal.checklistDone}/{deal.checklistTotal}
-                              </span>
-                            </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                              <div
-                                className="h-full bg-primary transition-all duration-500"
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <select
-                          value={deal.stage}
-                          onChange={(event) => moveDeal(deal.id, event.target.value as StageId)}
-                          className="mt-3 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none transition-colors focus:border-primary"
+                      return (
+                        <article
+                          key={deal.id}
+                          className="motion-surface cursor-grab rounded-xl border border-border bg-card p-3 shadow-card hover:shadow-card-hover active:cursor-grabbing"
+                          draggable
+                          onDragStart={(event) => event.dataTransfer.setData("dealId", deal.id)}
                         >
-                          {stages.map((option) => (
-                            <option key={option.id} value={option.id}>
-                              Mover para: {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </article>
-                    );
-                  })}
-                  {stageDeals.length === 0 && (
+                          <p className="text-sm font-semibold text-card-foreground">{deal.title}</p>
+                          <p className="text-xs text-muted-foreground">{deal.company}</p>
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-base font-bold text-primary">{formatMoney(deal.value)}</span>
+                            <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-medium text-secondary-foreground">
+                              {deal.owner}
+                            </span>
+                          </div>
+
+                          {deal.labels.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {deal.labels.map((label) => (
+                                <Badge key={label} variant="secondary" className="text-[10px]">
+                                  {label}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="mt-3 rounded-lg bg-muted/60 px-2.5 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Proxima acao</p>
+                            <p className="mt-1 text-xs text-foreground">{deal.nextAction || "Sem acao definida"}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground">Contato: {deal.contact || "-"}</p>
+                          </div>
+
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold", followUpTag.tone)}>
+                              {followUpTag.label}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Fech.: {deal.expectedClose || "--/--/----"}
+                            </span>
+                          </div>
+
+                          {deal.checklistTotal > 0 && (
+                            <div className="mt-3">
+                              <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span>Checklist</span>
+                                <span>
+                                  {deal.checklistDone}/{deal.checklistTotal}
+                                </span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full bg-primary transition-all duration-500"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          <select
+                            value={deal.stage}
+                            onChange={(event) => moveDeal(deal.id, event.target.value as StageId)}
+                            className="mt-3 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none transition-colors focus:border-primary"
+                          >
+                            {stages.map((option) => (
+                              <option key={option.id} value={option.id}>
+                                Mover para: {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </article>
+                      );
+                    })}
+
+                  {!loading && stageDeals.length === 0 && (
                     <div className="rounded-lg border border-dashed border-border bg-card/60 px-3 py-6 text-center text-xs text-muted-foreground">
                       Nenhuma oportunidade nesta etapa.
                     </div>

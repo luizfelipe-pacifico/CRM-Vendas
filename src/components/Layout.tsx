@@ -19,7 +19,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEFAULT_CRM_SETTINGS, readCrmSettings } from "@/lib/crm-settings";
+import { DEFAULT_CRM_SETTINGS, type CrmSettings } from "@/lib/crm-settings";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
+import { fetchCrmSettings } from "@/lib/crm-db";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -57,15 +58,29 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const syncSettings = () => setCrmSettings(readCrmSettings());
+    const loadSettings = async () => {
+      try {
+        const settings = await fetchCrmSettings();
+        setCrmSettings(settings);
+      } catch {
+        setCrmSettings(DEFAULT_CRM_SETTINGS);
+      }
+    };
 
-    syncSettings();
-    window.addEventListener("storage", syncSettings);
-    window.addEventListener("crm-settings-updated", syncSettings as EventListener);
+    const handleSettingsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<CrmSettings>;
+      if (customEvent.detail) {
+        setCrmSettings(customEvent.detail);
+      } else {
+        loadSettings();
+      }
+    };
+
+    loadSettings();
+    window.addEventListener("crm-settings-updated", handleSettingsUpdated as EventListener);
 
     return () => {
-      window.removeEventListener("storage", syncSettings);
-      window.removeEventListener("crm-settings-updated", syncSettings as EventListener);
+      window.removeEventListener("crm-settings-updated", handleSettingsUpdated as EventListener);
     };
   }, []);
 

@@ -24,7 +24,8 @@ npm run dev
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `SUPABASE_DB_URL` (uso server-side apenas, nao use no frontend)
-3. Cliente Supabase centralizado em `src/lib/supabase.ts`.
+3. No painel do Supabase, abra `SQL Editor` e execute o script [supabase/schema.sql](./supabase/schema.sql).
+4. Cliente Supabase centralizado em `src/lib/supabase.ts`.
 
 ## Build de producao
 
