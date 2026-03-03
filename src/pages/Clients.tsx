@@ -59,7 +59,7 @@ const Clients = () => {
         const data = await fetchClients();
         setClients(data);
       } catch (error) {
-        toast.error("Nao foi possivel carregar clientes", {
+        toast.error("Não foi possível carregar clientes", {
           description: error instanceof Error ? error.message : "Tente novamente.",
         });
       } finally {
@@ -166,7 +166,7 @@ const Clients = () => {
               <input
                 value={form.tags}
                 onChange={(event) => setForm((prev) => ({ ...prev, tags: event.target.value }))}
-                placeholder="Tags (separadas por virgula)"
+                placeholder="Tags (separadas por vírgula)"
                 className="sm:col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               />
               <input
@@ -210,7 +210,7 @@ const Clients = () => {
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contato</th>
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
               <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tags</th>
-              <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Ultimo contato</th>
+              <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Último contato</th>
               <th className="px-5 py-3" />
             </tr>
           </thead>

@@ -7,5 +7,5 @@ export interface CrmSettings {
 export const DEFAULT_CRM_SETTINGS: CrmSettings = {
   companyName: "CRM Vendas",
   commercialEmail: "luizflip9@gmail.com",
-  adminName: "Luiz Felipe Pacifico",
+  adminName: "Luíz Felipe Pacífico",
 };

@@ -68,25 +68,25 @@
   }
 
   .dark {
-    --background: 209 51% 10%;
+    --background: 209 51% 12%;
     --foreground: 210 22% 96%;
 
-    --card: 215 35% 14%;
+    --card: 218 11% 19%;
     --card-foreground: 210 22% 96%;
 
-    --popover: 215 35% 14%;
+    --popover: 218 11% 19%;
     --popover-foreground: 210 22% 96%;
 
-    --primary: 216 15% 87%;
-    --primary-foreground: 209 51% 12%;
+    --primary: 215 51% 44%;
+    --primary-foreground: 210 22% 96%;
 
-    --secondary: 218 11% 19%;
+    --secondary: 214 26% 24%;
     --secondary-foreground: 210 22% 96%;
 
-    --muted: 215 35% 16%;
-    --muted-foreground: 216 15% 75%;
+    --muted: 214 26% 24%;
+    --muted-foreground: 216 15% 87%;
 
-    --accent: 215 51% 25%;
+    --accent: 215 51% 36%;
     --accent-foreground: 210 22% 96%;
 
     --destructive: 0 65% 44%;
@@ -98,23 +98,28 @@
     --warning: 35 80% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 215 51% 40%;
+    --info: 215 51% 52%;
     --info-foreground: 0 0% 100%;
 
-    --border: 215 26% 24%;
-    --input: 215 26% 24%;
-    --ring: 216 15% 87%;
+    --border: 215 24% 32%;
+    --input: 215 24% 32%;
+    --ring: 216 15% 92%;
 
-    --sidebar-background: 209 51% 8%;
-    --sidebar-foreground: 216 15% 87%;
-    --sidebar-primary: 215 51% 32%;
+    --sidebar-background: 209 51% 10%;
+    --sidebar-foreground: 216 15% 90%;
+    --sidebar-primary: 215 51% 44%;
     --sidebar-primary-foreground: 210 22% 96%;
-    --sidebar-accent: 218 11% 19%;
+    --sidebar-accent: 214 26% 24%;
     --sidebar-accent-foreground: 210 22% 96%;
-    --sidebar-border: 215 26% 18%;
-    --sidebar-ring: 215 51% 35%;
-    --sidebar-muted: 218 11% 14%;
+    --sidebar-border: 214 26% 28%;
+    --sidebar-ring: 215 51% 48%;
+    --sidebar-muted: 214 26% 18%;
     --background-glow: radial-gradient(circle at 20% -5%, hsl(215 51% 25% / 0.35), transparent 42%);
+
+    --shadow-sm: 0 1px 3px hsl(209 51% 5% / 0.45);
+    --shadow-md: 0 10px 22px hsl(209 51% 5% / 0.42);
+    --shadow-lg: 0 16px 32px hsl(209 51% 5% / 0.5);
+    --shadow-primary: 0 10px 26px hsl(215 51% 44% / 0.38);
   }
 }
 

@@ -15,7 +15,7 @@ const Settings = () => {
         const settings = await fetchCrmSettings();
         setFormData(settings);
       } catch (error) {
-        toast.error("Nao foi possivel carregar configuracoes", {
+        toast.error("Não foi possível carregar configurações", {
           description: error instanceof Error ? error.message : "Tente novamente.",
         });
       } finally {
@@ -42,12 +42,12 @@ const Settings = () => {
       setFormData(saved);
       window.dispatchEvent(new CustomEvent("crm-settings-updated", { detail: saved }));
 
-      toast.success("Alteracoes salvas com sucesso", {
+      toast.success("Alterações salvas com sucesso", {
         description: "Dados persistidos no banco de dados.",
         duration: 3000,
       });
     } catch (error) {
-      toast.error("Falha ao salvar configuracoes", {
+      toast.error("Falha ao salvar configurações", {
         description: error instanceof Error ? error.message : "Tente novamente.",
       });
     } finally {
@@ -58,8 +58,8 @@ const Settings = () => {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Configuracoes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Dados da operacao comercial e administracao.</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">Configurações</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Dados da operação comercial e administração.</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-5 rounded-xl bg-card p-6 shadow-card">
@@ -95,7 +95,7 @@ const Settings = () => {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-card-foreground">Responsavel admin</label>
+            <label className="text-sm font-medium text-card-foreground">Responsável admin</label>
             <input
               type="text"
               value={formData.adminName}
@@ -113,7 +113,7 @@ const Settings = () => {
             className="gradient-primary inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-primary-glow transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Salvar alteracoes
+            Salvar alterações
           </button>
         </div>
       </form>

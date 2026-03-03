@@ -1,26 +1,32 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Users,
-  Kanban,
+  BarChart3,
+  Bell,
   CalendarCheck,
-  Settings,
   ChevronLeft,
   ChevronRight,
-  Bell,
-  Search,
-  Moon,
-  Sun,
-  Monitor,
   ChevronsUpDown,
-  UserRound,
+  House,
+  Kanban,
+  LayoutDashboard,
   LogOut,
+  MessageSquare,
+  Monitor,
+  Moon,
+  Search,
+  Settings,
   SlidersHorizontal,
+  Sun,
+  TrendingUp,
+  UserRound,
+  Users,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CRM_SETTINGS, type CrmSettings } from "@/lib/crm-settings";
-import { useTheme } from "next-themes";
+import { fetchCrmSettings } from "@/lib/crm-db";
+import { toast } from "@/components/ui/sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,22 +38,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "@/components/ui/sonner";
-import { fetchCrmSettings } from "@/lib/crm-db";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: Kanban, label: "Funil de vendas", path: "/pipeline" },
-  { icon: CalendarCheck, label: "Atividades", path: "/atividades" },
-  { icon: Settings, label: "Configuracoes", path: "/configuracoes" },
-];
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 type ThemeMode = "light" | "dark" | "system";
+
+const navItems: Array<{
+  icon: typeof House;
+  label: string;
+  path: string;
+  exact?: boolean;
+}> = [
+  { icon: House, label: "Início", path: "/", exact: true },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Users, label: "Clientes", path: "/clientes" },
+  { icon: Kanban, label: "Funil de vendas", path: "/pipeline" },
+  { icon: CalendarCheck, label: "Atividades", path: "/atividades" },
+  { icon: BarChart3, label: "Análises", path: "/analises" },
+  { icon: TrendingUp, label: "Melhorias", path: "/melhorias" },
+  { icon: Settings, label: "Configurações", path: "/configuracoes" },
+];
 
 const Layout = ({ children }: LayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -94,6 +106,14 @@ const Layout = ({ children }: LayoutProps) => {
 
   const selectedTheme: ThemeMode = mounted && theme ? (theme as ThemeMode) : "system";
 
+  const currentPath = useMemo(() => location.pathname, [location.pathname]);
+
+  const onChangeTheme = (value: ThemeMode) => {
+    setTheme(value);
+    const label = value === "light" ? "claro" : value === "dark" ? "escuro" : "sistema";
+    toast.success(`Tema alterado para ${label}`);
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside
@@ -102,7 +122,7 @@ const Layout = ({ children }: LayoutProps) => {
           collapsed ? "w-[74px]" : "w-[280px]"
         )}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
+        <Link to="/" className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
           <div className="h-9 w-9 overflow-hidden rounded-lg border border-sidebar-border/50 bg-sidebar-accent flex-shrink-0">
             <img src="/icon-CRM-vendas.png" alt="CRM Vendas" className="h-full w-full object-cover" />
           </div>
@@ -114,11 +134,11 @@ const Layout = ({ children }: LayoutProps) => {
               <p className="truncate text-[11px] text-sidebar-foreground">Pipeline comercial</p>
             </div>
           )}
-        </div>
+        </Link>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
+            const isActive = item.exact ? currentPath === item.path : currentPath.startsWith(item.path);
             return (
               <Link
                 key={item.path}
@@ -139,8 +159,9 @@ const Layout = ({ children }: LayoutProps) => {
         </nav>
 
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => setCollapsed((prev) => !prev)}
           className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-card transition-colors hover:text-foreground"
+          aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
@@ -176,20 +197,24 @@ const Layout = ({ children }: LayoutProps) => {
               <DropdownMenuLabel>Perfil</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => toast.info("Perfil completo em breve")}>
+                <DropdownMenuItem onClick={() => navigate("/melhorias")}>
                   <UserRound className="mr-2 h-4 w-4" />
                   Minha conta
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/feedback")}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Feedback
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
                   <SlidersHorizontal className="mr-2 h-4 w-4" />
-                  Preferencias
+                  Preferências
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCollapsed((value) => !value)}>
                   {collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => toast.success("Sessao encerrada (demo)")}>
+              <DropdownMenuItem onClick={() => toast.success("Sessão encerrada (demo)")}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sair
               </DropdownMenuItem>
@@ -204,7 +229,7 @@ const Layout = ({ children }: LayoutProps) => {
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar empresas, contatos e negocios..."
+              placeholder="Buscar empresas, contatos e negócios..."
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -224,15 +249,18 @@ const Layout = ({ children }: LayoutProps) => {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Tema</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={selectedTheme} onValueChange={(value) => setTheme(value)}>
+                <DropdownMenuRadioGroup value={selectedTheme} onValueChange={(value) => onChangeTheme(value as ThemeMode)}>
                   <DropdownMenuRadioItem value="light">Claro</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="dark">Escuro</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="system">Sistema (automatico)</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="system">Sistema (automático)</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <button className="motion-surface relative rounded-lg p-2 transition-colors hover:bg-muted" aria-label="Notificacoes">
+            <button
+              className="motion-surface relative rounded-lg p-2 transition-colors hover:bg-muted"
+              aria-label="Notificações"
+            >
               <Bell className="h-5 w-5 text-muted-foreground" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />
             </button>

@@ -66,7 +66,7 @@ const Activities = () => {
         const data = await fetchActivities();
         setActivities(data);
       } catch (error) {
-        toast.error("Nao foi possivel carregar atividades", {
+        toast.error("Não foi possível carregar atividades", {
           description: error instanceof Error ? error.message : "Tente novamente.",
         });
       } finally {
@@ -86,6 +86,7 @@ const Activities = () => {
 
     try {
       await updateActivityDone(id, nextDone);
+      toast.success(nextDone ? "Atividade marcada como concluída" : "Atividade reaberta com sucesso");
     } catch (error) {
       setActivities((prev) => prev.map((activity) => (activity.id === id ? { ...activity, done: current.done } : activity)));
       toast.error("Falha ao atualizar atividade", {
@@ -106,7 +107,7 @@ const Activities = () => {
 
   const onCreate = async () => {
     if (!form.title.trim()) {
-      toast.error("Informe o titulo da atividade");
+      toast.error("Informe o título da atividade");
       return;
     }
 
@@ -162,20 +163,20 @@ const Activities = () => {
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               >
                 <option value="followup">Follow-up</option>
-                <option value="call">Ligacao</option>
-                <option value="meeting">Reuniao</option>
+                <option value="call">Ligação</option>
+                <option value="meeting">Reunião</option>
                 <option value="email">E-mail</option>
               </select>
               <input
                 value={form.responsible}
                 onChange={(event) => setForm((prev) => ({ ...prev, responsible: event.target.value }))}
-                placeholder="Responsavel"
+                placeholder="Responsável"
                 className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               />
               <input
                 value={form.title}
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
-                placeholder="Titulo da atividade"
+                placeholder="Título da atividade"
                 className="sm:col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
               />
               <input
@@ -223,7 +224,7 @@ const Activities = () => {
               filter === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
-            {item === "all" ? "Todas" : item === "pending" ? "Pendentes" : "Concluidas"}
+            {item === "all" ? "Todas" : item === "pending" ? "Pendentes" : "Concluídas"}
           </button>
         ))}
       </div>

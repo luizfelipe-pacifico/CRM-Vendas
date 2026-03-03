@@ -1,6 +1,12 @@
 # CRM-PROJECT
 
-CRM focado em processo de vendas, com dashboard comercial, cadastro de clientes, funil em kanban e atividades.
+CRM focado em processo de vendas com:
+- Dashboard comercial
+- Clientes
+- Funil Kanban com jornada de lead
+- Atividades
+- Analises com filtros
+- Metas, automacoes e importacao de base
 
 ## Stack
 
@@ -9,6 +15,7 @@ CRM focado em processo de vendas, com dashboard comercial, cadastro de clientes,
 - Tailwind CSS
 - shadcn/ui
 - Recharts
+- Supabase
 
 ## Execucao local
 
@@ -19,25 +26,46 @@ npm run dev
 
 ## Supabase
 
-1. Copie o arquivo `.env.example` para `.env.local`.
-2. Preencha as variaveis:
+1. Copie `.env.example` para `.env.local`.
+2. Preencha:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `SUPABASE_DB_URL` (uso server-side apenas, nao use no frontend)
-3. No painel do Supabase, abra `SQL Editor` e execute o script [supabase/schema.sql](./supabase/schema.sql).
-4. Cliente Supabase centralizado em `src/lib/supabase.ts`.
+- `SUPABASE_DB_URL` (server-side only)
+3. Execute no SQL Editor:
+- `supabase/schema.sql` (estrutura base)
+- `supabase/migrations/20260303_crm_sales_upgrade.sql` (upgrade de leads/metas/automacoes)
 
-## Build de producao
+Cliente Supabase: `src/lib/supabase.ts`.
+
+## Seed de dados (teste)
+
+Para subir os 10 leads ficticios no kanban (Sem contato) e 20 clientes ficticios:
 
 ```sh
-npm run build
-npm run preview
+node scripts/seed-crm-data.cjs
 ```
+
+## Build e testes
+
+```sh
+npm run lint
+npm test -- --run
+npm run build
+```
+
+## Deploy Vercel
+
+1. Node `22.x` (`.nvmrc` + `engines` no `package.json`)
+2. Variaveis de ambiente:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+3. Build command: `npm run build`
 
 ## Estrutura principal
 
-- `src/components/Layout.tsx`: estrutura geral da aplicacao
-- `src/pages/Dashboard.tsx`: indicadores comerciais
-- `src/pages/Clients.tsx`: lista de clientes
-- `src/pages/Pipeline.tsx`: funil de vendas em kanban
-- `src/pages/Activities.tsx`: agenda e tarefas comerciais
+- `src/components/Layout.tsx`: layout geral, tema e navegacao
+- `src/pages/Dashboard.tsx`: visao comercial
+- `src/pages/Clients.tsx`: base de clientes
+- `src/pages/Pipeline.tsx`: jornada de lead, kanban, metas, automacoes e importacao
+- `src/pages/Activities.tsx`: rotina comercial
+- `src/pages/Analytics.tsx`: relatorios e filtros
