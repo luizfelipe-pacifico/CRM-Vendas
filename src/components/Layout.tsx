@@ -27,7 +27,14 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_CRM_SETTINGS, type CrmSettings } from "@/lib/crm-settings";
 import { fetchCrmSettings } from "@/lib/crm-db";
 import { hasSupabaseConfig } from "@/lib/supabase";
-import { toast } from "@/components/ui/sonner";
+import {
+  clearNotifications,
+  getStoredNotifications,
+  markAllNotificationsAsRead,
+  NOTIFICATION_EVENT,
+  toast,
+  type AppNotification,
+} from "@/components/ui/sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,10 +69,36 @@ const navItems: Array<{
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 
+const notificationTone: Record<AppNotification["type"], string> = {
+  success: "bg-success/15 text-success",
+  error: "bg-destructive/15 text-destructive",
+  info: "bg-info/15 text-info",
+  warning: "bg-warning/15 text-warning",
+};
+
+const notificationLabel: Record<AppNotification["type"], string> = {
+  success: "Sucesso",
+  error: "Erro",
+  info: "Informação",
+  warning: "Alerta",
+};
+
+const formatNotificationDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const Layout = ({ children }: LayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [crmSettings, setCrmSettings] = useState(DEFAULT_CRM_SETTINGS);
   const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -73,7 +106,8 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     if (!hasSupabaseConfig) {
       toast.error("Configuração do banco ausente", {
-        description: "Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY na Vercel para carregar os dados.",
+        description:
+          "Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY (ou VITE_SUPABASE_PUBLISHABLE_KEY) na Vercel para carregar os dados.",
         duration: 7000,
       });
     }
@@ -107,6 +141,18 @@ const Layout = ({ children }: LayoutProps) => {
   }, []);
 
   useEffect(() => {
+    const syncNotifications = () => {
+      setNotifications(getStoredNotifications());
+    };
+
+    syncNotifications();
+    window.addEventListener(NOTIFICATION_EVENT, syncNotifications as EventListener);
+    return () => {
+      window.removeEventListener(NOTIFICATION_EVENT, syncNotifications as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     document.title = crmSettings.companyName || "CRM Vendas";
   }, [crmSettings.companyName]);
 
@@ -115,13 +161,25 @@ const Layout = ({ children }: LayoutProps) => {
   }, []);
 
   const selectedTheme: ThemeMode = mounted && theme ? (theme as ThemeMode) : "system";
-
   const currentPath = useMemo(() => location.pathname, [location.pathname]);
+  const unreadCount = useMemo(() => notifications.filter((item) => !item.read).length, [notifications]);
+  const recentNotifications = useMemo(() => notifications.slice(0, 12), [notifications]);
 
   const onChangeTheme = (value: ThemeMode) => {
     setTheme(value);
     const label = value === "light" ? "claro" : value === "dark" ? "escuro" : "sistema";
     toast.success(`Tema alterado para ${label}`);
+  };
+
+  const onOpenNotificationMenu = (open: boolean) => {
+    if (!open) return;
+    markAllNotificationsAsRead();
+    setNotifications(getStoredNotifications());
+  };
+
+  const onClearNotifications = () => {
+    clearNotifications();
+    setNotifications([]);
   };
 
   return (
@@ -243,6 +301,7 @@ const Layout = ({ children }: LayoutProps) => {
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
+
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -267,13 +326,54 @@ const Layout = ({ children }: LayoutProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <button
-              className="motion-surface relative rounded-lg p-2 transition-colors hover:bg-muted"
-              aria-label="Notificações"
-            >
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />
-            </button>
+            <DropdownMenu onOpenChange={onOpenNotificationMenu}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="motion-surface relative rounded-lg p-2 transition-colors hover:bg-muted"
+                  aria-label="Notificações"
+                  title="Notificações"
+                >
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  {unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  ) : (
+                    <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-96">
+                <div className="flex items-center justify-between px-2 pb-1">
+                  <DropdownMenuLabel className="p-0">Notificações</DropdownMenuLabel>
+                  <button
+                    type="button"
+                    onClick={onClearNotifications}
+                    className="rounded px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    Limpar
+                  </button>
+                </div>
+                <DropdownMenuSeparator />
+                <div className="max-h-96 space-y-2 overflow-y-auto px-1 py-1">
+                  {recentNotifications.length === 0 && (
+                    <p className="rounded-md px-2 py-4 text-center text-sm text-muted-foreground">Nenhuma notificação registrada.</p>
+                  )}
+                  {recentNotifications.map((notification) => (
+                    <article key={notification.id} className="rounded-md border border-border bg-background px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", notificationTone[notification.type])}>
+                          {notificationLabel[notification.type]}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">{formatNotificationDate(notification.createdAt)}</span>
+                      </div>
+                      <p className="mt-1 text-sm font-medium text-foreground">{notification.title}</p>
+                      {notification.description && <p className="mt-0.5 text-xs text-muted-foreground">{notification.description}</p>}
+                    </article>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
